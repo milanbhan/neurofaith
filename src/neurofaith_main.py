@@ -1,7 +1,80 @@
+from tqdm import tqdm
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
-def test():
-    return("hello")
+class neurofaith:
+    def __init__(self, model, tokenizer, device, stop_words=None):
+
+        self.tokenizer = tokenizer
+        self.stop_words = stop_words
+        self.device = device
+
+        if self.stop_words == None:
+            self.stop_words = [
+                "-", ".", ",", ";", "!", "?", "'", ":", "’", ";,", "___", "_", "(A)", "(B)", "(C)", "(D)", "(E)", "(F)",
+                "(a)", "(b)", "(c)", "(d)", "(e)", "(f)" "the", "a", "to", "is", "of", "on", "in", "are", "and", "does",
+            ]
+
+        if "gemma" in tokenizer.name_or_path:
+            self.user_token = "<start_of_turn>user"
+            self.assistant_token = "<start_of_turn>model"
+            self.end_of_turn = "<end_of_turn>"
+            self.stop_token = "<eos>"
+            self.correct_cst = 2
+            self.embedding_layer = model.model.embed_tokens
+        elif "mistral" in tokenizer.name_or_path:
+            self.user_token = "[INST]"
+            self.assistant_token = "[/INST]"
+            self.end_of_turn = "</s>"
+            self.stop_token = "</s>"
+            self.correct_cst = 1
+            self.embedding_layer = model.model.embed_tokens
+        else:
+            raise Exception("Sorry, this tokenizer is not handled so far")
+        
+    def answer(self,
+               model,
+               texts:list[str],
+               preprompt:str='Complete the following text:',
+               answer_prefix:str=None,
+               max_new_tokens:int=15,
+               temperature:float=0.05) -> list[str]:
+        
+        answers=[]
+        
+        #for all texts to answer
+        for text in tqdm(texts):
+            
+            #preprocessing
+            messages = [
+            {"role": "user", "content": preprompt + "\n" + text + "\n**Answer:**"},
+            ]
+
+            if answer_prefix!=None:
+                messages.append({"role": "assistant", "content": answer_prefix})
+            else:
+                pass
+
+            encoded_input = self.tokenizer.apply_chat_template(
+                    messages, return_tensors="pt"
+                ).to(self.device)
+            
+            #answering
+            with torch.no_grad():
+                outputs = model.generate(
+                    encoded_input,
+                    max_new_tokens=max_new_tokens,
+                    do_sample=True,
+                    temperature=temperature,
+                    top_p=0.9,
+                    repetition_penalty=1.2
+                )
+            
+            #decoding the answer
+            answer = self.tokenizer.decode(outputs[0][len(encoded_input[0]):], skip_special_tokens=True)
+            answers.append(answer)
+        
+        return(answers)
+              
