@@ -160,4 +160,50 @@ class neurofaith:
             explanations.append(explanation)
         
         return(explanations)
+    
+    def retrieve_bridge_object(self,
+               retriever_model,
+               texts:list[str],
+               e1_labels:list[str],
+               e3_answers:list[str],
+               preprompt:str="What is the entity logically linking ",
+               max_new_tokens:int=10,
+               temperature:float=0.05) -> list[str]:
+        
+        preprompt_example_1 = "**Paris** to **Emmanuel Macron** in the following text? Answer briefly\n**Text**: 'Emmanue Macron is the president of France, and the capital city of France is Paris.'\n**Logical link entity:**"
+        preprompt_example_2 = "**Sweden** to **the movie Persona** in the following text? Answer briefly\n**Text**: 'The movie Persona has been directed from Ingmar Bergman, who is from Sweden.'\n**Logical link entity:**"
+
+        
+        bridge_objects=[]
+
+        #for all texts to answer
+        for i in tqdm(range(len(texts))):
+            
+            #preprocessing
+            messages = [
+            {"role": "user", "content": preprompt + preprompt_example_1},
+            {"role": "assistant" ,"content": f"""**France**<eos>"""},
+            {"role": "user", "content": preprompt + preprompt_example_2},
+            {"role": "assistant" ,"content": f"""**Ingmar Bergman**<eos>"""},
+            {"role": "user", "content": preprompt + "**"+ e1_labels.iloc[i] + "** to **" + e3_answers.iloc[i] + "** in the following text? Answer briefly\n **Text**: " + "'"+ texts[i] + "'\n**Logical link entity:**"},
+            ]
+
+            encoded_input = self.tokenizer.apply_chat_template(messages, return_tensors="pt").to(self.device)
+
+            #answering
+            with torch.no_grad():
+                outputs = retriever_model.generate(
+                    encoded_input.input_ids,
+                    max_new_tokens=max_new_tokens,
+                    do_sample=True,
+                    temperature=temperature,
+                    top_p=0.9,
+                    repetition_penalty=1.2
+                )
+            
+            #decoding the answer
+            bridge_object = self.tokenizer.decode(outputs[0][len(encoded_input[0]):], skip_special_tokens=True)
+            bridge_objects.append(bridge_object)
+        
+        return(bridge_objects)
               
