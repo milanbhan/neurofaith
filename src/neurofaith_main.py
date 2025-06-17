@@ -163,6 +163,7 @@ class neurofaith:
     
     def retrieve_bridge_object(self,
                retriever_model,
+               retriever_tokenizer,
                texts:list[str],
                e1_labels:list[str],
                e3_answers:list[str],
@@ -188,12 +189,13 @@ class neurofaith:
             {"role": "user", "content": preprompt + "**"+ e1_labels.iloc[i] + "** to **" + e3_answers.iloc[i] + "** in the following text? Answer briefly\n **Text**: " + "'"+ texts[i] + "'\n**Logical link entity:**"},
             ]
 
-            encoded_input = self.tokenizer.apply_chat_template(messages, return_tensors="pt").to(self.device)
+            encoded_input = retriever_tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True, enable_thinking=False, return_tensors="pt")
+            encoded_input = retriever_tokenizer([encoded_input], return_tensors="pt").to(retriever_model.device)
 
             #answering
             with torch.no_grad():
                 outputs = retriever_model.generate(
-                    encoded_input.input_ids,
+                    **encoded_input,
                     max_new_tokens=max_new_tokens,
                     do_sample=True,
                     temperature=temperature,
@@ -202,7 +204,8 @@ class neurofaith:
                 )
             
             #decoding the answer
-            bridge_object = self.tokenizer.decode(outputs[0][len(encoded_input[0]):], skip_special_tokens=True)
+            output_ids = outputs[0][len(encoded_input.input_ids[0]):].tolist()
+            bridge_object = retriever_tokenizer.decode(output_ids)
             bridge_objects.append(bridge_object)
         
         return(bridge_objects)
