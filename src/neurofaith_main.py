@@ -186,7 +186,7 @@ class neurofaith:
             {"role": "assistant" ,"content": f"""**France**<eos>"""},
             {"role": "user", "content": preprompt + preprompt_example_2},
             {"role": "assistant" ,"content": f"""**Ingmar Bergman**<eos>"""},
-            {"role": "user", "content": preprompt + "**"+ e1_labels.iloc[i] + "** to **" + e3_answers.iloc[i] + "** in the following text? Answer briefly\n **Text**: " + "'"+ texts[i] + "'\n**Logical link entity:**"},
+            {"role": "user", "content": preprompt + "**"+ e1_labels.iloc[i] + "** to **" + e3_answers.iloc[i] + "** in the following text? Answer briefly\n **Text**: " + "'"+ texts.iloc[i] + "'\n**Logical link entity:**"},
             ]
 
             encoded_input = retriever_tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True, enable_thinking=False, return_tensors="pt")
