@@ -183,9 +183,9 @@ class neurofaith:
             #preprocessing
             messages = [
             {"role": "user", "content": preprompt + preprompt_example_1},
-            {"role": "assistant" ,"content": f"""**France**<eos>"""},
+            {"role": "assistant" ,"content": f"""**France**|im_end|"""},
             {"role": "user", "content": preprompt + preprompt_example_2},
-            {"role": "assistant" ,"content": f"""**Ingmar Bergman**<eos>"""},
+            {"role": "assistant" ,"content": f"""**Ingmar Bergman**|im_end|"""},
             {"role": "user", "content": preprompt + "**"+ e1_labels.iloc[i] + "** to **" + e3_answers.iloc[i] + "** in the following text? Answer briefly\n **Text**: " + "'"+ texts.iloc[i] + "'\n**Logical link entity:**"},
             ]
 
@@ -207,6 +207,7 @@ class neurofaith:
             output_ids = outputs[0][len(encoded_input.input_ids[0]):].tolist()
             bridge_object = retriever_tokenizer.decode(output_ids)
             bridge_objects.append(bridge_object)
+            # print(bridge_object)
         
         return(bridge_objects)
               
