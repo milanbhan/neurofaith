@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
+from interpret.selfie import GemmaSelfIE 
 
 class neurofaith:
     def __init__(self, model, tokenizer, device, stop_words=None):
@@ -160,6 +161,31 @@ class neurofaith:
             explanations.append(explanation)
         
         return(explanations)
+    
+    def interpret_selfie(self,
+                        model,
+                        texts:list[str],
+                        interpretation_prompt = "What is the following? Answer briefly",
+                        num_placeholders = 2,
+                        max_new_tokens = 50,
+                        layers_to_interpret = [8,10,12],
+                        layers_interpreter = [3,4],
+                        token_index = -2):
+        
+        results_interpret = []
+        selfie_interpret = GemmaSelfIE(model, self.tokenizer, 
+                                       interpretation_prompt=interpretation_prompt, 
+                                       num_placeholders=num_placeholders, 
+                                       max_new_tokens=max_new_tokens)
+        #for all texts to answer
+        for i in tqdm(range(len(texts))):
+            result_interpret = selfie_interpret.interpret(to_interpret_text = texts.iloc[i],
+                                                          layers_to_interpret=layers_to_interpret,
+                                                          layers_interpreter=layers_interpreter,
+                                                          token_index=token_index)
+            results_interpret.append(result_interpret)
+
+        return()
     
     def retrieve_bridge_object(self,
                retriever_model,
