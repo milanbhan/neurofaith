@@ -3,7 +3,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-from interpret.selfie import GemmaSelfIE 
+from interpret.selfie import GemmaSelfIE
+from collections import defaultdict
+
 
 class neurofaith:
     def __init__(self, model, tokenizer, device, stop_words=None):
@@ -184,8 +186,16 @@ class neurofaith:
                                                           layers_interpreter=layers_interpreter,
                                                           token_index=token_index)
             results_interpret.append(result_interpret)
+            
+        #Converting the list of dictionnaries into a single dictionnary of lists 
+        result = defaultdict(list)
+        for d in results_interpret:
+            for key, value in d.items():
+                result[key].append(value)
 
-        return()
+        result = dict(result)
+
+        return(result)
     
     def retrieve_bridge_object(self,
                retriever_model,

@@ -42,6 +42,16 @@ def clean_explanation(explanations:list[str]) -> list[str]:
     explanations = explanations.str.rstrip()
     return(explanations)
 
+def clean_interpretation(explanations:list[str]) -> list[str]:
+    explanations = explanations.str.split('Let me know').str[0].str.strip()
+    explanations = explanations.str.split('Please give').str[0].str.strip()
+    explanations = explanations.str.replace("**Answer:**","")
+    explanations = explanations.str.replace("*Answer*","")
+    explanations = explanations.str.replace("\n"," ")
+    explanations = explanations.str.replace(r'\s+', ' ', regex=True)
+    explanations = explanations.str.rstrip()
+    return(explanations)
+
 def clean_bridge_objects(bridge_objects:list[str]) -> list[str]:
     bridge_objects = bridge_objects.str.split('Let me know').str[0].str.strip()
     bridge_objects = bridge_objects.str.split('Please give').str[0].str.strip()

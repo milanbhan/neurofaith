@@ -2,13 +2,13 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-from transformers import PreTrainedTokenizer, PreTrainedModel
+# from transformers import PreTrainedTokenizer, PreTrainedModel
 from typing import List, Dict
 
 class GemmaSelfIE:
     def __init__(self,
-                 model: PreTrainedModel,
-                 tokenizer: PreTrainedTokenizer,
+                 model,
+                 tokenizer,
                  interpretation_prompt = "What is the following? Answer briefly",
                  num_placeholders = 2,
                  max_new_tokens = 50):
@@ -92,9 +92,10 @@ class GemmaSelfIE:
                 output_hidden_states=True
             )
         
+        interpret_dict = {}
         for l in layers_to_interpret:
             for k in layers_interpreter:
-                interpret_dict = {}
+                
             # Prepare the model inputs for generation
                 interpreter_input = interpretation_prompt['inputs'].to(self.model.device)
                 interpreter_input_ids = interpreter_input['input_ids']
