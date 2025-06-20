@@ -165,10 +165,11 @@ class GemmaSelfIE:
                   layers_to_interpret = [8,10,12],
                   layers_interpreter = [3,4],
                   token_index = -2,
-                  n_steps=30):
+                  n_steps=30,
+                  intensity=1):
         
         def generate_logits_prediction(input):
-            output = self.model(input.to(self.device)).logits[:, -1, :]
+            output = self.model(input.to(self.model.device)).logits[:, -1, :]
             return(output)
         
         layers = self.layers
@@ -194,12 +195,15 @@ class GemmaSelfIE:
                 # hidden_state_to_interpret = to_interpret_output.hidden_states[l][0][token_index]
                 layer = self.model.model.layers[l]
                 lig = LayerIntegratedGradients(generate_logits_prediction, layer)
-                input = self.tokenizer(to_interpret_text, return_tensors="pt")['input_ids'].to(self.device)
-                baseline = torch.clone(input, memory_format=torch.preserve_format).to(self.device)
+                input = self.tokenizer(to_interpret_text, return_tensors="pt")['input_ids'].to(self.model.device)
+                baseline = torch.clone(input, memory_format=torch.preserve_format).to(self.model.device)
                 baseline[0][token_index] = 0
                 idx_max = torch.argmax(self.model(input).logits[:, -1, :])
                 attribution = lig.attribute(input, target=idx_max, return_convergence_delta=False, n_steps=n_steps, baselines=baseline)
-                hidden_state_to_interpret = attribution[0,token_index,:]
+                ##Adding in the direction of the gradients
+                hidden_state_to_interpret = intensity * attribution[0,token_index,:] + to_interpret_output.hidden_states[l][0][token_index]
+                # hidden_state_to_interpret = intensity * attribution[0,token_index,:] 
+
                 generated_tokens = []
 
                 for _ in range(self.max_new_tokens):
