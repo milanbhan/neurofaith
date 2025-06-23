@@ -59,14 +59,13 @@ class neurofaith:
                 messages.append({"role": "assistant", "content": answer_prefix})
                 encoded_input = self.tokenizer.apply_chat_template(messages, return_tensors="pt").to(self.device)
                 # remove <\s>
-                encoded_input = torch.reshape(encoded_input[0][: -self.correct_cst],(1, encoded_input[0][: -self.correct_cst].shape[0]),
-            )
+                encoded_input = torch.reshape(encoded_input[0][: -self.correct_cst],(1, encoded_input[0][: -self.correct_cst].shape[0]),)
             else:
                 encoded_input = self.tokenizer.apply_chat_template(messages, return_tensors="pt").to(self.device)
 
-            encoded_input = self.tokenizer.apply_chat_template(
-                    messages, return_tensors="pt"
-                ).to(self.device)
+            # encoded_input = self.tokenizer.apply_chat_template(
+            #         messages, return_tensors="pt"
+            #     ).to(self.device)
             
             #answering
             with torch.no_grad():
@@ -89,20 +88,32 @@ class neurofaith:
                model,
                texts:list[str],
                max_new_tokens:int=15,
-               temperature:float=0.05) -> list[str]:
+               temperature:float=0.05,
+               nudge=False,
+               answer_prefix=None) -> list[str]:
         
         answers=[]
         
         #for all texts to answer
         for text in tqdm(texts):
             
-            #tokenize raw text
-            encoded_input = self.tokenizer(text, return_tensors="pt").to(self.device)
+            if nudge==False:
+                #tokenize raw text
+                encoded_input = self.tokenizer(text, return_tensors="pt").to(self.device).input_ids
+            else:
+                messages = [
+            {"role": "user", "content": text}
+            ]
+                messages.append({"role": "assistant", "content": answer_prefix})
+                encoded_input = self.tokenizer.apply_chat_template(messages, return_tensors="pt").to(self.device)
+                # remove <\s>
+                encoded_input = torch.reshape(encoded_input[0][: -self.correct_cst],(1, encoded_input[0][: -self.correct_cst].shape[0]),)
+            
 
             #answering
             with torch.no_grad():
                 outputs = model.generate(
-                    encoded_input.input_ids,
+                    encoded_input,
                     max_new_tokens=max_new_tokens,
                     do_sample=True,
                     temperature=temperature,

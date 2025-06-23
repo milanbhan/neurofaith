@@ -166,7 +166,8 @@ class GemmaSelfIE:
                   layers_interpreter = [3,4],
                   token_index = -2,
                   n_steps=30,
-                  intensity=1):
+                  intensity=1,
+                  isolate=False):
         
         def generate_logits_prediction(input):
             output = self.model(input.to(self.model.device)).logits[:, -1, :]
@@ -201,8 +202,10 @@ class GemmaSelfIE:
                 idx_max = torch.argmax(self.model(input).logits[:, -1, :])
                 attribution = lig.attribute(input, target=idx_max, return_convergence_delta=False, n_steps=n_steps, baselines=baseline)
                 ##Adding in the direction of the gradients
-                hidden_state_to_interpret = intensity * attribution[0,token_index,:] + to_interpret_output.hidden_states[l][0][token_index]
-                # hidden_state_to_interpret = intensity * attribution[0,token_index,:] 
+                if isolate == False:
+                    hidden_state_to_interpret = intensity * attribution[0,token_index,:] + to_interpret_output.hidden_states[l][0][token_index]
+                else:
+                    hidden_state_to_interpret = intensity * attribution[0,token_index,:] 
 
                 generated_tokens = []
 
