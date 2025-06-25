@@ -259,16 +259,17 @@ class neurofaith:
         
         return(bridge_objects)
     
-    def compute_faithfulness(data:pd.DataFrame,
-                        bridge_objects_column:str,
+    def compute_faithfulness(self,
+                        data:pd.DataFrame,
+                        predicted_bridge_objects_column:str,
                         col_interpretation:list[str]) -> list:
     
         #init_interpretation_status
-        interpretation_status = pd.Series([False]*(data.shape[0]))
+        faithful_NLE = pd.Series([False]*(data.shape[0]))
         for c in col_interpretation:
             # Compute the interpretation status, if bridge object in the interpretation
-            results = [bridge_object in interpretation for bridge_object, interpretation in zip(data[bridge_objects_column].fillna(" "), data[c].fillna(" "))]
-            interpretation_status = pd.Series(interpretation_status) | pd.Series(results) 
+            results = [bridge_object in interpretation for bridge_object, interpretation in zip(data[predicted_bridge_objects_column].fillna(" "), data[c].fillna(" "))]
+            interpretation_status = pd.Series(faithful_NLE) | pd.Series(results) 
 
         return(interpretation_status)
               
