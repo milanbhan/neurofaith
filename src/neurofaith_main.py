@@ -272,4 +272,59 @@ class neurofaith:
             faithful_NLE = pd.Series(faithful_NLE) | pd.Series(results) 
 
         return(faithful_NLE)
-              
+    
+    def compute_characterization(self,
+                            data:pd.DataFrame,
+                            prediction_status:str="prediction_status",
+                            explanation_status:str="explanation_status",
+                            interpretation_status:str="interpretation_status",
+                            faithful_NLE:str="faithful_NLE"):
+        
+        #Reliable orcale category
+        data["reliable_oracle"] = 0
+        data["reliable_oracle"][(data[prediction_status]==True) & (data[faithful_NLE]==True) & (data[explanation_status]==True)] = 1
+        #Biased category
+        data["biased"] = 0
+        data["biased"][(data[prediction_status]==True) & (data[faithful_NLE]==True) & (data[explanation_status]==False)] = 1
+        #Explainable parrot category
+        data["explainer_parrot"] = 0
+        data["explainer_parrot"][(data[prediction_status]==True) & (data[faithful_NLE]==False) & (data[explanation_status]==True)] = 1
+        #Deceptive category
+        data["deceptive"] = 0
+        data["deceptive"][(data[prediction_status]==True) & (data[faithful_NLE]==False) & (data[explanation_status]==False) & (data[interpretation_status]==True)] = 1
+        #Shortcut learning category
+        data["shortcut_learning"] = 0
+        data["shortcut_learning"][(data[prediction_status]==True) & (data[faithful_NLE]==False) & (data[explanation_status]==False) & (data[interpretation_status]==False)] = 1
+        #Prediction accurate category
+        data["prediction_accurate_category"] = ''
+        data["prediction_accurate_category"][(data["reliable_oracle"]==1)] = 'reliable_oracle'
+        data["prediction_accurate_category"][(data["biased"]==1)] = 'biased'
+        data["prediction_accurate_category"][(data["explainer_parrot"]==1)] = 'explainer_parrot'
+        data["prediction_accurate_category"][(data["deceptive"]==1)] = 'deceptive'
+        data["prediction_accurate_category"][(data["shortcut_learning"]==1)] = 'shortcut_learning'
+
+        #Parametric Knowledge false e2 -> e3 category
+        data["PK_false_23"] = 0
+        data["PK_false_23"][(data[prediction_status]==False) & (data[faithful_NLE]==True) & (data[explanation_status]==True)] = 1
+        #Parametric Knowledge false e1 -> e2 category
+        data["PK_false_12"] = 0
+        data["PK_false_12"][(data[prediction_status]==False) & (data[faithful_NLE]==True) & (data[explanation_status]==False)] = 1
+        #Parrot e1 -> e2 Parrot category
+        data["parrot_12"] = 0
+        data["parrot_12"][(data[prediction_status]==False) & (data[faithful_NLE]==True) & (data[explanation_status]==True)] = 1
+        #Deceptive False (PK false e2 -> e3 unlikely)
+        data["deceptive_false"] = 0
+        data["deceptive_false"][(data[prediction_status]==False) & (data[faithful_NLE]==False) & (data[explanation_status]==False) & (data[interpretation_status]==True)] = 1
+        #Parametric Knowledge false e1 -> e2 unlikely
+        data["PK_false_12_unlikely"] = 0
+        data["PK_false_12_unlikely"][(data[prediction_status]==False) & (data[faithful_NLE]==False) & (data[explanation_status]==False) & (data[interpretation_status]==False)] = 1
+        #Prediction non accurate category
+        data["prediction_non_accurate_category"] = ''
+        data["prediction_non_accurate_category"][(data["PK_false_23"]==1)] = 'PK_false_23'
+        data["prediction_non_accurate_category"][(data["PK_false_12"]==1)] = 'PK_false_12'
+        data["prediction_non_accurate_category"][(data["parrot_12"]==1)] = 'parrot_12'
+        data["prediction_non_accurate_category"][(data["deceptive_false"]==1)] = 'deceptive_false'
+        data["prediction_non_accurate_category"][(data["PK_false_12_unlikely"]==1)] = 'PK_false_12_unlikely'
+
+        return(data)
+
