@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
+import pandas as pd
 from interpret.selfie import GemmaSelfIE
 from collections import defaultdict
 
@@ -257,4 +258,17 @@ class neurofaith:
             # print(bridge_object)
         
         return(bridge_objects)
+    
+    def compute_faithfulness(data:pd.DataFrame,
+                        bridge_objects_column:str,
+                        col_interpretation:list[str]) -> list:
+    
+        #init_interpretation_status
+        interpretation_status = pd.Series([False]*(data.shape[0]))
+        for c in col_interpretation:
+            # Compute the interpretation status, if bridge object in the interpretation
+            results = [bridge_object in interpretation for bridge_object, interpretation in zip(data[bridge_objects_column].fillna(" "), data[c].fillna(" "))]
+            interpretation_status = pd.Series(interpretation_status) | pd.Series(results) 
+
+        return(interpretation_status)
               

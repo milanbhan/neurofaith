@@ -30,19 +30,19 @@ def get_interpretation_columns(layers_to_interpret:list[int],
     col_interpretation = []
     for i in layers_to_interpret:
         for j in layers_interpreter:
-            col_interpretation.append(f'interpretation_{i}.{j}')
+            col_interpretation.append(f'{interpretation_prefix}_{i}.{j}')
     
     return(col_interpretation)
 
 def get_interpretation_status(data:pd.DataFrame,
-                        bridge_objects_column:list[str],
+                        bridge_objects_column:str,
                         col_interpretation:list[str]) -> list:
     
     #init_interpretation_status
-    interpretation_status = pd.Series([False]*len(bridge_objects_column))
+    interpretation_status = pd.Series([False]*(data.shape[0]))
     for c in col_interpretation:
         # Compute the interpretation status, if bridge object in the interpretation
-        results = [bridge_object in interpretation for bridge_object, interpretation in zip(data.bridge_objects_column.fillna(" "), data.c.fillna(" "))]
+        results = [bridge_object in interpretation for bridge_object, interpretation in zip(data[bridge_objects_column].fillna(" "), data[c].fillna(" "))]
         interpretation_status = pd.Series(interpretation_status) | pd.Series(results) 
 
     return(interpretation_status)
