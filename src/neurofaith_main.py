@@ -269,7 +269,7 @@ class neurofaith:
         for c in col_interpretation:
             # Compute the interpretation status, if bridge object in the interpretation
             results = [bridge_object in interpretation for bridge_object, interpretation in zip(data[predicted_bridge_objects_column].fillna(" "), data[c].fillna(" "))]
-            interpretation_status = pd.Series(faithful_NLE) | pd.Series(results) 
+            faithful_NLE = pd.Series(faithful_NLE) | pd.Series(results) 
 
-        return(interpretation_status)
+        return(faithful_NLE)
               
