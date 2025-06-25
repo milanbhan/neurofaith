@@ -101,7 +101,7 @@ class GemmaSelfIE:
                 interpreter_input = interpretation_prompt['inputs'].to(self.model.device)
                 interpreter_input_ids = interpreter_input['input_ids']
                 interpreter_input_masks = interpreter_input['attention_mask']
-                #Retrieve hidden state fo interpret in layer l
+                #Retrieve hidden state to interpret in layer l
                 hidden_state_to_interpret = to_interpret_output.hidden_states[l][0][token_index]
                 generated_tokens = []
 

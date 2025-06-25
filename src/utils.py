@@ -1,4 +1,5 @@
 from thefuzz import fuzz
+import pandas as pd
 
 def get_prediction_status(answers:list[str],
                         predictions:list[str],
@@ -17,9 +18,34 @@ def get_explanation_status(bridge_objects:list[str],
     # Compute fuzzy similarity row by row
     fuzzy_result = bridge_objects.reset_index(drop=True).combine(predicted_bridge_objects.reset_index(drop=True), lambda a, b: fuzz.ratio(a, b) >= threshold)
     contain_result = [bridge_object in explanation for bridge_object, explanation in zip(bridge_objects.fillna(" "), explanations.fillna(" "))]
-    result = [fuzzy or contain for fuzzy, contain in zip(fuzzy_result, contain_result)]
+    label_contains_predicted_results = [predicted_bridge_object in bridge_object for predicted_bridge_object, bridge_object in zip(predicted_bridge_objects.fillna(" "), bridge_objects.fillna(" "))]
+    results = [fuzzy or contain for fuzzy, contain in zip(fuzzy_result, contain_result)]
+    results = [label_contains_predicted_result or result for label_contains_predicted_result, result in zip(label_contains_predicted_results, results)]
 
-    return(result)
+    return(results)
+
+def get_interpretation_columns(layers_to_interpret:list[int],
+                        layers_interpreter:list[int],
+                        interpretation_prefix='interpretation') -> list:
+    col_interpretation = []
+    for i in layers_to_interpret:
+        for j in layers_interpreter:
+            col_interpretation.append(f'interpretation_{i}.{j}')
+    
+    return(col_interpretation)
+
+def get_interpretation_status(data:pd.DataFrame,
+                        bridge_objects_column:list[str],
+                        col_interpretation:list[str]) -> list:
+    
+    #init_interpretation_status
+    interpretation_status = pd.Series([False]*len(bridge_objects_column))
+    for c in col_interpretation:
+        # Compute the interpretation status, if bridge object in the interpretation
+        results = [bridge_object in interpretation for bridge_object, interpretation in zip(data.bridge_objects_column.fillna(" "), data.c.fillna(" "))]
+        interpretation_status = pd.Series(interpretation_status) | pd.Series(results) 
+
+    return(interpretation_status)
 
 
 def clean_prediction(explanations:list[str]) -> list[str]:
@@ -60,6 +86,8 @@ def clean_bridge_objects(bridge_objects:list[str]) -> list[str]:
     bridge_objects = bridge_objects.str.split('Let me know').str[0].str.strip()
     bridge_objects = bridge_objects.str.split('Please give').str[0].str.strip()
     bridge_objects = bridge_objects.str.replace("|im_end|","")
+    bridge_objects = bridge_objects.str.replace("|im","")
+    bridge_objects = bridge_objects.str.replace("|im_end","")
     bridge_objects = bridge_objects.str.replace("<|endoftext|>","")
     bridge_objects = bridge_objects.str.replace("*","")
     bridge_objects = bridge_objects.str.rstrip()
