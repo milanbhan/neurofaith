@@ -140,12 +140,12 @@ class neurofaith:
         explanations=[]
         
         #for all texts to answer
-        for i in tqdm(range(len(texts))):
+        for text, answer in zip(texts, answers):
             
             #preprocessing
             messages = [
-            {"role": "user", "content": texts.iloc[i]},
-            {"role": "assistant" ,"content": answers.iloc[i]},
+            {"role": "user", "content": text},
+            {"role": "assistant" ,"content": answer},
             {"role": "user", "content": preprompt},
             ]
 
