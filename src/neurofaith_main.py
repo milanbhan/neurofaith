@@ -365,7 +365,7 @@ class neurofaith:
         data.loc[(data[prediction_status]==False) & (data[faithful_NLE]==False) & (data[explanation_status]==True), "parrot_12"] = 1
         #Parametric Knowledge false e1 -> e2 unlikely or Deceptive False (PK false e2 -> e3 unlikely)
         data["error_deceptive"] = 0
-        data.loc[(data[prediction_status]==False) & (data[faithful_NLE]==False) & (data[explanation_status]==False) & (data[interpretation_status]==True), "error_deceptive"] = 1
+        data.loc[(data[prediction_status]==False) & (data[faithful_NLE]==False) & (data[explanation_status]==False), "error_deceptive"] = 1
         #Prediction non accurate category
         data["prediction_non_accurate_category"] = ''
         data.loc[(data["PK_false_23"]==1), "prediction_non_accurate_category"] = 'PK_false_23'
