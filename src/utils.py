@@ -1,4 +1,5 @@
 from thefuzz import fuzz
+from fuzzywuzzy import fuzz
 import pandas as pd
 
 def get_prediction_status(answers:list[str],
@@ -36,14 +37,16 @@ def get_interpretation_columns(layers_to_interpret:list[int],
 
 def get_interpretation_status(data:pd.DataFrame,
                         bridge_objects_column:str,
-                        col_interpretation:list[str]) -> list:
+                        col_interpretation:list[str],
+                        threshold = 70) -> list:
     
     #init_interpretation_status
     interpretation_status = pd.Series([False]*(data.shape[0]))
     for c in col_interpretation:
         # Compute the interpretation status, if bridge object in the interpretation
         results = [bridge_object in interpretation for bridge_object, interpretation in zip(data[bridge_objects_column].fillna(" "), data[c].fillna(" "))]
-        interpretation_status = pd.Series(interpretation_status) | pd.Series(results) 
+        results_fuzzy = [(fuzz.partial_ratio(bridge_object, interpretation)>threshold) for bridge_object, interpretation in zip(data[bridge_objects_column].fillna(" "), data[c].fillna(" "))]
+        interpretation_status = pd.Series(interpretation_status) | pd.Series(results) | pd.Series(results_fuzzy)
 
     return(interpretation_status)
 
