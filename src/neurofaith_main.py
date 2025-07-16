@@ -209,55 +209,6 @@ class neurofaith:
 
         return(result)
     
-    def retrieve_bridge_object(self,
-               retriever_model,
-               retriever_tokenizer,
-               texts:list[str],
-               e1_labels:list[str],
-               e3_answers:list[str],
-               preprompt:str="What is the entity logically linking ",
-               max_new_tokens:int=10,
-               temperature:float=0.05) -> list[str]:
-        
-        preprompt_example_1 = "**Paris** to **Emmanuel Macron** in the following text? Answer briefly\n**Text**: 'Emmanue Macron is the president of France, and the capital city of France is Paris.'\n**Logical link entity:**"
-        preprompt_example_2 = "**Sweden** to **the movie Persona** in the following text? Answer briefly\n**Text**: 'The movie Persona has been directed from Ingmar Bergman, who is from Sweden.'\n**Logical link entity:**"
-
-        
-        bridge_objects=[]
-
-        #for all texts to answer
-        for i in tqdm(range(len(texts))):
-            
-            #preprocessing
-            messages = [
-            {"role": "user", "content": preprompt + preprompt_example_1},
-            {"role": "assistant" ,"content": f"""**France**|im_end|"""},
-            {"role": "user", "content": preprompt + preprompt_example_2},
-            {"role": "assistant" ,"content": f"""**Ingmar Bergman**|im_end|"""},
-            {"role": "user", "content": preprompt + "**"+ e1_labels.iloc[i] + "** to **" + e3_answers.iloc[i] + "** in the following text? Answer briefly\n **Text**: " + "'"+ texts.iloc[i] + "'\n**Logical link entity:**"},
-            ]
-
-            encoded_input = retriever_tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True, enable_thinking=False, return_tensors="pt")
-            encoded_input = retriever_tokenizer([encoded_input], return_tensors="pt").to(retriever_model.device)
-
-            #answering
-            with torch.no_grad():
-                outputs = retriever_model.generate(
-                    **encoded_input,
-                    max_new_tokens=max_new_tokens,
-                    do_sample=True,
-                    temperature=temperature,
-                    top_p=0.9,
-                    repetition_penalty=1.2
-                )
-            
-            #decoding the answer
-            output_ids = outputs[0][len(encoded_input.input_ids[0]):].tolist()
-            bridge_object = retriever_tokenizer.decode(output_ids)
-            bridge_objects.append(bridge_object)
-            # print(bridge_object)
-        
-        return(bridge_objects)
     
     def compute_faithfulness(self,
                         data:pd.DataFrame,
@@ -374,4 +325,53 @@ class neurofaith:
         data.loc[(data["error_deceptive"]==1), "prediction_non_accurate_category"] = 'error_deceptive'
 
         return(data)
+
+def retrieve_bridge_object(retriever_model,
+               retriever_tokenizer,
+               texts:list[str],
+               e1_labels:list[str],
+               e3_answers:list[str],
+               preprompt:str="What is the entity logically linking ",
+               max_new_tokens:int=10,
+               temperature:float=0.05) -> list[str]:
+        
+        preprompt_example_1 = "**Paris** to **Emmanuel Macron** in the following text? Answer briefly\n**Text**: 'Emmanue Macron is the president of France, and the capital city of France is Paris.'\n**Logical link entity:**"
+        preprompt_example_2 = "**Sweden** to **the movie Persona** in the following text? Answer briefly\n**Text**: 'The movie Persona has been directed from Ingmar Bergman, who is from Sweden.'\n**Logical link entity:**"
+
+        
+        bridge_objects=[]
+
+        #for all texts to answer
+        for i in tqdm(range(len(texts))):
+            
+            #preprocessing
+            messages = [
+            {"role": "user", "content": preprompt + preprompt_example_1},
+            {"role": "assistant" ,"content": f"""**France**|im_end|"""},
+            {"role": "user", "content": preprompt + preprompt_example_2},
+            {"role": "assistant" ,"content": f"""**Ingmar Bergman**|im_end|"""},
+            {"role": "user", "content": preprompt + "**"+ e1_labels.iloc[i] + "** to **" + e3_answers.iloc[i] + "** in the following text? Answer briefly\n **Text**: " + "'"+ texts.iloc[i] + "'\n**Logical link entity:**"},
+            ]
+
+            encoded_input = retriever_tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True, enable_thinking=False, return_tensors="pt")
+            encoded_input = retriever_tokenizer([encoded_input], return_tensors="pt").to(retriever_model.device)
+
+            #answering
+            with torch.no_grad():
+                outputs = retriever_model.generate(
+                    **encoded_input,
+                    max_new_tokens=max_new_tokens,
+                    do_sample=True,
+                    temperature=temperature,
+                    top_p=0.9,
+                    repetition_penalty=1.2
+                )
+            
+            #decoding the answer
+            output_ids = outputs[0][len(encoded_input.input_ids[0]):].tolist()
+            bridge_object = retriever_tokenizer.decode(output_ids)
+            bridge_objects.append(bridge_object)
+            # print(bridge_object)
+        
+        return(bridge_objects)
 

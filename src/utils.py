@@ -1,4 +1,4 @@
-import thefuzz 
+from thefuzz import fuzz
 import fuzzywuzzy
 import pandas as pd
 
@@ -17,7 +17,7 @@ def get_explanation_status(bridge_objects:list[str],
                         predicted_bridge_objects:list[str],
                         threshold:int = 50) -> list:
     # Compute fuzzy similarity row by row
-    fuzzy_result = bridge_objects.reset_index(drop=True).combine(predicted_bridge_objects.reset_index(drop=True), lambda a, b: thefuzz.fuzz.ratio(a, b) >= threshold)
+    fuzzy_result = bridge_objects.reset_index(drop=True).combine(predicted_bridge_objects.reset_index(drop=True), lambda a, b: fuzz.ratio(a, b) >= threshold)
     contain_result = [bridge_object in explanation for bridge_object, explanation in zip(bridge_objects.fillna(" "), explanations.fillna(" "))]
     label_contains_predicted_results = [predicted_bridge_object in bridge_object for predicted_bridge_object, bridge_object in zip(predicted_bridge_objects.fillna(" "), bridge_objects.fillna(" "))]
     results = [fuzzy or contain for fuzzy, contain in zip(fuzzy_result, contain_result)]
