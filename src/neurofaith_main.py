@@ -211,8 +211,7 @@ class neurofaith:
         return(result)
     
     
-def compute_characterization(self,
-                        data:pd.DataFrame,
+def compute_characterization(data:pd.DataFrame,
                         prediction_status:str="prediction_status",
                         explanation_status:str="explanation_status",
                         interpretation_status:str="interpretation_status",
@@ -266,8 +265,7 @@ def compute_characterization(self,
 
     return(data)
 
-def compute_characterization_eval(self,
-                        data:pd.DataFrame,
+def compute_characterization_eval(data:pd.DataFrame,
                         prediction_status:str="prediction_status",
                         explanation_status:str="explanation_status",
                         interpretation_status:str="interpretation_status",
