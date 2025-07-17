@@ -322,8 +322,8 @@ def compute_faithfulness(data:pd.DataFrame,
         faithful_NLE = pd.Series([False]*(data.shape[0]))
         for c in col_interpretation:
             # Compute the interpretation status, if bridge object in the interpretation
-            results = [bridge_object in interpretation for bridge_object, interpretation in zip(data[predicted_bridge_objects_column].fillna(" "), data[c].fillna(" "))]
-            results_fuzzy = [(fuzz.partial_ratio(bridge_object, interpretation)>threshold) for bridge_object, interpretation in zip(data[predicted_bridge_objects_column].fillna(" "), data[c].fillna(" "))]
+            results = [bridge_object in interpretation for bridge_object, interpretation in zip(data[predicted_bridge_objects_column].fillna(""), data[c].fillna(""))]
+            results_fuzzy = [(fuzz.partial_ratio(bridge_object, interpretation)>threshold) for bridge_object, interpretation in zip(data[predicted_bridge_objects_column].fillna(""), data[c].fillna(""))]
             faithful_NLE = pd.Series(faithful_NLE) | pd.Series(results) | pd.Series(results_fuzzy)
 
         return(faithful_NLE)
