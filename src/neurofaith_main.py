@@ -383,8 +383,7 @@ def retrieve_bridge_object_by_asking(retriever_model,
                texts:list[str],
                r1_templates:list[str],
                e1_labels:list[str],
-               e3_answers:list[str],
-               preprompt:str="Answer briefly and only according to the provided text. According to the following text:  ",
+               preprompt:str="Answer briefly and only according to the provided text. If there is no clear answer, say **no answer**. According to the following text:  ",
                max_new_tokens:int=10,
                temperature:float=0.05) -> list[str]:
         
