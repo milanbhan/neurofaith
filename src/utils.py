@@ -60,6 +60,7 @@ def clean_prediction(explanations:list[str]) -> list[str]:
     explanations = explanations.str.replace(":","")
     explanations = explanations.str.replace("?","")
     explanations = explanations.str.replace("!","")
+    explanations = explanations.str.replace("*","")
     explanations = explanations.str.replace("named","")
     explanations = explanations.str.split('Let me know if').str[0].str.strip()
     explanations = explanations.str.split(".Here's").str[0].str.strip()
