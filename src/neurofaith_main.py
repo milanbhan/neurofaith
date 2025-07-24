@@ -378,3 +378,53 @@ def retrieve_bridge_object(retriever_model,
         
         return(bridge_objects)
 
+def retrieve_bridge_object_by_asking(retriever_model,
+               retriever_tokenizer,
+               texts:list[str],
+               r1_templates:list[str],
+               e1_labels:list[str],
+               e3_answers:list[str],
+               preprompt:str="Answer briefly and only according to the provided text. According to the following text:  ",
+               max_new_tokens:int=10,
+               temperature:float=0.05) -> list[str]:
+        
+        preprompt_example_1 = f"**'Emmanuel Macron is the president of Italy, and the capital city of Italy is Rome.** the president of Italy is \n**Answer:**"
+        preprompt_example_2 = f"**The movie Persona is a movie happening in the Faro island and has been directed by Ingmar Bergman, who is from Sweden.**: 'The director of Persona is \n**Answer:**"
+
+        
+        bridge_objects=[]
+
+        #for all texts to answer
+        for i in tqdm(range(len(texts))):
+            
+            #preprocessing
+            messages = [
+            {"role": "user", "content": preprompt + preprompt_example_1},
+            {"role": "assistant" ,"content": f"""**Emmanuel Macron**|im_end|"""},
+            {"role": "user", "content": preprompt + preprompt_example_2},
+            {"role": "assistant" ,"content": f"""**Ingmar Bergman**|im_end|"""},
+            {"role": "user", "content": preprompt + "**"+ texts.iloc[i] + "**, " + r1_templates.iloc[i].replace("{}", "") + e1_labels.iloc[i]+ "'\n**Answer:**"},
+            ]
+
+            encoded_input = retriever_tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True, enable_thinking=False, return_tensors="pt")
+            encoded_input = retriever_tokenizer([encoded_input], return_tensors="pt").to(retriever_model.device)
+
+            #answering
+            with torch.no_grad():
+                outputs = retriever_model.generate(
+                    **encoded_input,
+                    max_new_tokens=max_new_tokens,
+                    do_sample=True,
+                    temperature=temperature,
+                    top_p=0.9,
+                    repetition_penalty=1.2
+                )
+            
+            #decoding the answer
+            output_ids = outputs[0][len(encoded_input.input_ids[0]):].tolist()
+            bridge_object = retriever_tokenizer.decode(output_ids)
+            bridge_objects.append(bridge_object)
+            # print(bridge_object)
+        
+        return(bridge_objects)
+
