@@ -56,7 +56,15 @@ def get_interpretation_status(data:pd.DataFrame,
 def clean_prediction(explanations:list[str]) -> list[str]:
     explanations = explanations.str.split('\nThis statement is').str[0].str.strip()
     explanations = explanations.str.split('\nPlease provide more context or').str[0].str.strip()
-    explanations = explanations.str.replace("\n","")
+    explanations = explanations.str.split('\nExplanation').str[0].str.strip()
+    explanations = explanations.str.split('The answer is ').str[0].str.strip()
+    # try:
+    #     explanations = explanations.str.split('\Answer').str[1].str.strip()
+    # except:
+    #     pass
+    explanations = explanations.str.split('\n').str[0].str.strip()
+    # explanations = explanations.str.replace("\n","")
+    explanations = explanations.str.replace("Answer","")
     explanations = explanations.str.replace(":","")
     explanations = explanations.str.replace("?","")
     explanations = explanations.str.replace("!","")
