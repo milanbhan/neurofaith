@@ -399,9 +399,9 @@ def retrieve_bridge_object_by_asking(retriever_model,
             #preprocessing
             messages = [
             {"role": "user", "content": preprompt + preprompt_example_1},
-            {"role": "assistant" ,"content": f"""**Emmanuel Macron**|endoftext|"""},
+            {"role": "assistant" ,"content": f"""**Emmanuel Macron**"""},
             {"role": "user", "content": preprompt + preprompt_example_2},
-            {"role": "assistant" ,"content": f"""**Ingmar Bergman**|endoftext|"""},
+            {"role": "assistant" ,"content": f"""**Ingmar Bergman**"""},
             {"role": "user", "content": preprompt + "**"+ texts.iloc[i] + "**, " + r1_templates.iloc[i].replace("{}", "") + e1_labels.iloc[i]+ "'\n**Answer:**"},
             ]
 

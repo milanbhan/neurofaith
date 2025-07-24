@@ -3,12 +3,14 @@ import fuzzywuzzy
 import pandas as pd
 
 def get_prediction_status(answers:list[str],
+                          aliases:list[str],
                         predictions:list[str],
                         threshold:int = 70) -> list:
     # Compute fuzzy similarity row by row
     fuzzy_result = answers.combine(predictions, lambda a, b: fuzz.ratio(a, b) >= threshold)
     contain_result = [answer in prediction for answer, prediction in zip(answers, predictions)]
-    result = [fuzzy or contain for fuzzy, contain in zip(fuzzy_result, contain_result)]
+    contain_alias = [any(alias in prediction for alias in eval(alias_iter)) for alias_iter, prediction in zip(aliases, predictions)]
+    result = [fuzzy or contain or alias for fuzzy, contain, alias in zip(fuzzy_result, contain_result,contain_alias)]
 
     return(result)
 
