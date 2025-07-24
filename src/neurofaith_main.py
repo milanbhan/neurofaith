@@ -383,7 +383,7 @@ def retrieve_bridge_object_by_asking(retriever_model,
                texts:list[str],
                r1_templates:list[str],
                e1_labels:list[str],
-               preprompt:str="Answer briefly and only according to the provided text. If there is no clear answer, say **no answer**. According to the following text:  ",
+               preprompt:str="Answer briefly and only according to the provided text. If there is no clear answer, say **no bridge object**. According to the following text:  ",
                max_new_tokens:int=10,
                temperature:float=0.05) -> list[str]:
         
@@ -399,9 +399,9 @@ def retrieve_bridge_object_by_asking(retriever_model,
             #preprocessing
             messages = [
             {"role": "user", "content": preprompt + preprompt_example_1},
-            {"role": "assistant" ,"content": f"""**Emmanuel Macron**|im_end|"""},
+            {"role": "assistant" ,"content": f"""**Emmanuel Macron**|endoftext|"""},
             {"role": "user", "content": preprompt + preprompt_example_2},
-            {"role": "assistant" ,"content": f"""**Ingmar Bergman**|im_end|"""},
+            {"role": "assistant" ,"content": f"""**Ingmar Bergman**|endoftext|"""},
             {"role": "user", "content": preprompt + "**"+ texts.iloc[i] + "**, " + r1_templates.iloc[i].replace("{}", "") + e1_labels.iloc[i]+ "'\n**Answer:**"},
             ]
 
