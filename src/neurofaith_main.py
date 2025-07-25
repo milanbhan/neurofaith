@@ -178,7 +178,7 @@ class neurofaith:
     def interpret_selfie(self,
                         model,
                         texts:list[str],
-                        r1_template:list[str]
+                        r1_template:list[str],
                         interpretation_prompt = "What is the following? Answer briefly",
                         num_placeholders = 2,
                         max_new_tokens = 50,
@@ -194,7 +194,7 @@ class neurofaith:
         #for all texts to answer
         for i in tqdm(range(len(texts))):
             result_interpret = selfie_interpret.interpret(to_interpret_text = texts.iloc[i],
-                                                          interpretation_query = r1_template.str.replace(" {}","").iloc[i]
+                                                          interpretation_query = r1_template.replace(" {}","").iloc[i],
                                                           layers_to_interpret=layers_to_interpret,
                                                           layers_interpreter=layers_interpreter,
                                                           token_index=token_index)

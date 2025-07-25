@@ -78,7 +78,7 @@ class GemmaSelfIE:
     
     def interpret(self, 
                   to_interpret_text:str,
-                  interpretation_query = None
+                  interpretation_query = None,
                   layers_to_interpret = [8,10,12],
                   layers_interpreter = [3,4],
                   token_index = -2):
