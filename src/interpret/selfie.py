@@ -78,14 +78,19 @@ class GemmaSelfIE:
     
     def interpret(self, 
                   to_interpret_text:str,
+                  interpretation_query = None
                   layers_to_interpret = [8,10,12],
                   layers_interpreter = [3,4],
                   token_index = -2):
         
         interpretations = []
         layers = self.layers
+        if interpretation_query==None:
+            interpretation_query = self.interpretation_prompt
+        else:
+            pass
 
-        interpretation_prompt = self.create_interpretation_prompt([self.interpretation_prompt, None])
+        interpretation_prompt = self.create_interpretation_prompt([interpretation_query, None])
         to_interpret_input = self.tokenizer(to_interpret_text, return_tensors="pt").to(self.model.device)
         with torch.no_grad():
             to_interpret_output = self.model(

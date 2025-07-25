@@ -141,7 +141,7 @@ class neurofaith:
         explanations=[]
         
         #for all texts to answer
-        for text, answer in zip(texts, answers):
+        for text, answer in tqdm(zip(texts, answers)):
             
             #preprocessing
             messages = [
@@ -151,11 +151,9 @@ class neurofaith:
             ]
 
             if answer_prefix!=None:
-                messages.append({"role": "assistant", "content": answer_prefix})
+                messages.append({"role": "assistant", "content": answer_prefix+'\n\n'})
                 encoded_input = self.tokenizer.apply_chat_template(messages, return_tensors="pt").to(self.device)
-                # remove <\s>
-                encoded_input = torch.reshape(encoded_input[0][: -self.correct_cst],(1, encoded_input[0][: -self.correct_cst].shape[0]),
-            )
+            
             else:
                 encoded_input = self.tokenizer.apply_chat_template(messages, return_tensors="pt").to(self.device)
 
@@ -180,6 +178,7 @@ class neurofaith:
     def interpret_selfie(self,
                         model,
                         texts:list[str],
+                        r1_template:list[str]
                         interpretation_prompt = "What is the following? Answer briefly",
                         num_placeholders = 2,
                         max_new_tokens = 50,
@@ -195,6 +194,7 @@ class neurofaith:
         #for all texts to answer
         for i in tqdm(range(len(texts))):
             result_interpret = selfie_interpret.interpret(to_interpret_text = texts.iloc[i],
+                                                          interpretation_query = r1_template.str.replace(" {}","").iloc[i]
                                                           layers_to_interpret=layers_to_interpret,
                                                           layers_interpreter=layers_interpreter,
                                                           token_index=token_index)
