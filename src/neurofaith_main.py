@@ -430,52 +430,56 @@ def retrieve_bridge_object_by_asking(retriever_model,
         
         return(bridge_objects)
 
-def annotate_self_exp_concept_agnews(retriever_model,
+def annotate_self_exp_concept_agnews(df, retriever_model,
                retriever_tokenizer,
-               texts:list[str],
+               self_explanations:list[str],
                concepts:list[str],
-               answers:list[str],
-               preprompt:str="Answer only with **positive**, **negative** or **neutral/unquoted** and only according to the provided text. According to the following text: ",
+               preprompt:str="Answer only with **quoted** or **unquoted** and only according to the provided text. In the following text: ",
                max_new_tokens:int=10,
                temperature:float=0.05) -> list[str]:
         
-        preprompt_example_1 = f"**The GDP of OECD countries has been growing in the 20th century.** The **economic trends** topic link with the **world** category is \n**Answer:**"
-        preprompt_example_2 = f"**The French soccer striker is playing good.**: 'The **Scores** topic link with the **sport** category is \n**Answer:**"
+        preprompt_example_1 = f"**The GDP of OECD countries has been growing in the 20th century.** The **economic trends** topic is \n**Answer:**"
+        preprompt_example_2 = f"**The French soccer striker is playing good.**: 'The **Scores** topic is \n**Answer:**"
 
         
-        bridge_objects=[]
+        concept_impacts={}
 
-        #for all texts to answer
-        for i in tqdm(range(len(texts))):
-            
-            #preprocessing
-            messages = [
-            {"role": "user", "content": preprompt + preprompt_example_1},
-            {"role": "assistant" ,"content": f"""****positive****"""},
-            {"role": "user", "content": preprompt + preprompt_example_2},
-            {"role": "assistant" ,"content": f"""**neutral/unquoted**"""},
-            {"role": "user", "content": preprompt + "**"+ texts.iloc[i] + "**. The **" + concepts.iloc[i] + "** topic link with the **" + answers.iloc[i]+ "** category is \n**Answer:**"},
-            ]
+        for c in tqdm(concepts):
+            concept_impact_list = []
+            #for all texts to answer
+            for i in range(len(self_explanations)):
+                if df[c].iloc[i]==0:
+                    concept_impact = "**unquoted**"
+                else:
+                    #preprocessing
+                    messages = [
+                    {"role": "user", "content": preprompt + preprompt_example_1},
+                    {"role": "assistant" ,"content": f"""****quoted****"""},
+                    {"role": "user", "content": preprompt + preprompt_example_2},
+                    {"role": "assistant" ,"content": f"""**unquoted**"""},
+                    {"role": "user", "content": preprompt + "**"+ self_explanations.iloc[i] + "**. The **" + c + "** topic is \n**Answer:**"},
+                    ]
 
-            encoded_input = retriever_tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True, enable_thinking=False, return_tensors="pt")
-            encoded_input = retriever_tokenizer([encoded_input], return_tensors="pt").to(retriever_model.device)
+                    encoded_input = retriever_tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True, enable_thinking=False, return_tensors="pt")
+                    encoded_input = retriever_tokenizer([encoded_input], return_tensors="pt").to(retriever_model.device)
 
-            #answering
-            with torch.no_grad():
-                outputs = retriever_model.generate(
-                    **encoded_input,
-                    max_new_tokens=max_new_tokens,
-                    do_sample=True,
-                    temperature=temperature,
-                    top_p=0.9,
-                    repetition_penalty=1.2
-                )
-            
-            #decoding the answer
-            output_ids = outputs[0][len(encoded_input.input_ids[0]):].tolist()
-            bridge_object = retriever_tokenizer.decode(output_ids)
-            bridge_objects.append(bridge_object)
+                    #answering
+                    with torch.no_grad():
+                        outputs = retriever_model.generate(
+                            **encoded_input,
+                            max_new_tokens=max_new_tokens,
+                            do_sample=True,
+                            temperature=temperature,
+                            top_p=0.9,
+                            repetition_penalty=1.2
+                        )
+                    
+                    #decoding the answer
+                    output_ids = outputs[0][len(encoded_input.input_ids[0]):].tolist()
+                    concept_impact = retriever_tokenizer.decode(output_ids)
+                concept_impact_list.append(concept_impact)
+            concept_impacts[c] = concept_impact_list
             # print(bridge_object)
         
-        return(bridge_objects)
+        return(concept_impacts)
 
