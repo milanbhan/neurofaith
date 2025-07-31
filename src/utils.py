@@ -42,7 +42,7 @@ def get_interpretation_columns(layers_to_interpret:list[int],
 def get_interpretation_status(data:pd.DataFrame,
                         bridge_objects_column:str,
                         col_interpretation:list[str],
-                        threshold = 70) -> list:
+                        threshold = 85) -> list:
     
     #init_interpretation_status
     interpretation_status = pd.Series([False]*(data.shape[0]))
@@ -94,6 +94,7 @@ def clean_interpretation(explanations:list[str]) -> list[str]:
     explanations = explanations.str.replace("Answer: ","")
     explanations = explanations.str.replace("What is the following?"," ")
     explanations = explanations.str.replace('**"Answer"**'," ")
+    explanations = explanations.str.replace("\n\n"," ")
     explanations = explanations.str.replace("\n"," ")
     explanations = explanations.str.replace(r'\s+', ' ', regex=True)
     

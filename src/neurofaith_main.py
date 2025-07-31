@@ -194,7 +194,7 @@ class neurofaith:
         #for all texts to answer
         for i in tqdm(range(len(texts))):
             result_interpret = selfie_interpret.interpret(to_interpret_text = texts.iloc[i],
-                                                          interpretation_query = r1_template.replace(" {}","").iloc[i],
+                                                          interpretation_query = "Tell me "+r1_template.str.replace(" {}","").iloc[i],
                                                           layers_to_interpret=layers_to_interpret,
                                                           layers_interpreter=layers_interpreter,
                                                           token_index=token_index)
@@ -315,16 +315,19 @@ def compute_characterization_eval(data:pd.DataFrame,
 
 def compute_faithfulness(data:pd.DataFrame,
                         predicted_bridge_objects_column:str,
+                        interpretation_status_column:str,
+                        explanation_status_column:str,
                         col_interpretation:list[str],
-                        threshold = 70) -> list:
+                        threshold = 85) -> list:
     
         #init_interpretation_status
         faithful_NLE = pd.Series([False]*(data.shape[0]))
+        results_consistency = [explanation_status & interpretation_status for explanation_status, interpretation_status in zip(data[interpretation_status_column].fillna(""), data[explanation_status_column].fillna(""))]
         for c in col_interpretation:
             # Compute the interpretation status, if bridge object in the interpretation
             results = [bridge_object in interpretation for bridge_object, interpretation in zip(data[predicted_bridge_objects_column].fillna(""), data[c].fillna(""))]
             results_fuzzy = [(fuzz.partial_ratio(bridge_object, interpretation)>threshold) for bridge_object, interpretation in zip(data[predicted_bridge_objects_column].fillna(""), data[c].fillna(""))]
-            faithful_NLE = pd.Series(faithful_NLE) | pd.Series(results) | pd.Series(results_fuzzy)
+            faithful_NLE = pd.Series(faithful_NLE) | pd.Series(results) | pd.Series(results_fuzzy) | pd.Series(results_consistency)
 
         return(faithful_NLE)
 
@@ -403,6 +406,55 @@ def retrieve_bridge_object_by_asking(retriever_model,
             {"role": "user", "content": preprompt + preprompt_example_2},
             {"role": "assistant" ,"content": f"""**Ingmar Bergman**"""},
             {"role": "user", "content": preprompt + "**"+ texts.iloc[i] + "**, " + r1_templates.iloc[i].replace("{}", "") + e1_labels.iloc[i]+ "'\n**Answer:**"},
+            ]
+
+            encoded_input = retriever_tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True, enable_thinking=False, return_tensors="pt")
+            encoded_input = retriever_tokenizer([encoded_input], return_tensors="pt").to(retriever_model.device)
+
+            #answering
+            with torch.no_grad():
+                outputs = retriever_model.generate(
+                    **encoded_input,
+                    max_new_tokens=max_new_tokens,
+                    do_sample=True,
+                    temperature=temperature,
+                    top_p=0.9,
+                    repetition_penalty=1.2
+                )
+            
+            #decoding the answer
+            output_ids = outputs[0][len(encoded_input.input_ids[0]):].tolist()
+            bridge_object = retriever_tokenizer.decode(output_ids)
+            bridge_objects.append(bridge_object)
+            # print(bridge_object)
+        
+        return(bridge_objects)
+
+def annotate_self_exp_concept_agnews(retriever_model,
+               retriever_tokenizer,
+               texts:list[str],
+               concepts:list[str],
+               answers:list[str],
+               preprompt:str="Answer only with **positive**, **negative** or **neutral/unquoted** and only according to the provided text. According to the following text: ",
+               max_new_tokens:int=10,
+               temperature:float=0.05) -> list[str]:
+        
+        preprompt_example_1 = f"**The GDP of OECD countries has been growing in the 20th century.** The **economic trends** topic link with the **world** category is \n**Answer:**"
+        preprompt_example_2 = f"**The French soccer striker is playing good.**: 'The **Scores** topic link with the **sport** category is \n**Answer:**"
+
+        
+        bridge_objects=[]
+
+        #for all texts to answer
+        for i in tqdm(range(len(texts))):
+            
+            #preprocessing
+            messages = [
+            {"role": "user", "content": preprompt + preprompt_example_1},
+            {"role": "assistant" ,"content": f"""****positive****"""},
+            {"role": "user", "content": preprompt + preprompt_example_2},
+            {"role": "assistant" ,"content": f"""**neutral/unquoted**"""},
+            {"role": "user", "content": preprompt + "**"+ texts.iloc[i] + "**. The **" + concepts.iloc[i] + "** topic link with the **" + answers.iloc[i]+ "** category is \n**Answer:**"},
             ]
 
             encoded_input = retriever_tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True, enable_thinking=False, return_tensors="pt")
