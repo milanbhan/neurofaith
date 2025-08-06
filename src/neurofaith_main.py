@@ -432,14 +432,15 @@ def retrieve_bridge_object_by_asking(retriever_model,
 
 def annotate_self_exp_concept_agnews(df, retriever_model,
                retriever_tokenizer,
+               answers:list[str],
                self_explanations:list[str],
                concepts:list[str],
-               preprompt:str="Answer only with **quoted** or **unquoted** and only according to the provided text. In the following text: ",
+               preprompt:str="I want to know if a specific concept has a direct link with a category in a given text. Answer only with **YES** or **NO** and only according to the provided text. In the following text: ",
                max_new_tokens:int=10,
                temperature:float=0.05) -> list[str]:
         
-        preprompt_example_1 = f"**The GDP of OECD countries has been growing in the 20th century.** The **economic trends** topic is \n**Answer:**"
-        preprompt_example_2 = f"**The French soccer striker is playing good.**: 'The **Scores** topic is \n**Answer:**"
+        preprompt_example_1 = f"'The text says that OECD countries became richer in the 20th century. This falls under the category of **world**'. The **economic trends** concept is directly related to **world**.\n**Answer:**"
+        preprompt_example_2 = f"'The text underlines that the French soccer striker is a good player. It is relevant to **sport**': 'The **Scores** concept is directly related to **sport**.\n**Answer:**"
 
         
         concept_impacts={}
@@ -454,10 +455,10 @@ def annotate_self_exp_concept_agnews(df, retriever_model,
                     #preprocessing
                     messages = [
                     {"role": "user", "content": preprompt + preprompt_example_1},
-                    {"role": "assistant" ,"content": f"""****quoted****"""},
+                    {"role": "assistant" ,"content": f"""***YES***"""},
                     {"role": "user", "content": preprompt + preprompt_example_2},
-                    {"role": "assistant" ,"content": f"""**unquoted**"""},
-                    {"role": "user", "content": preprompt + "**"+ self_explanations.iloc[i] + "**. The **" + c + "** topic is \n**Answer:**"},
+                    {"role": "assistant" ,"content": f"""**NO**"""},
+                    {"role": "user", "content": preprompt + "'"+ self_explanations.iloc[i] + "'. The **" + c + "** concept is directly related to **" + answers.iloc[i] +"**.\n**Answer:**"},
                     ]
 
                     encoded_input = retriever_tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True, enable_thinking=False, return_tensors="pt")
