@@ -435,12 +435,12 @@ def annotate_self_exp_concept_agnews(df, retriever_model,
                answers:list[str],
                self_explanations:list[str],
                concepts:list[str],
-               preprompt:str="I want to know if a specific concept has a direct link with a category in a given text. Answer only with **YES** or **NO** and only according to the provided text. TEXT: ",
+               preprompt:str="I want to know if a specific topic is related to a category in a given text. Answer only with **yes** or **no** and only according to the provided text. In the following text: **",
                max_new_tokens:int=10,
                temperature:float=0.05) -> list[str]:
         
-        preprompt_example_1 = f"'The text says that OECD countries became richer in the 20th century. This falls under the category of **world**'. In the previous text, the **economic trends** concept is mentioned and directly related to **world**.\n**Answer:**"
-        preprompt_example_2 = f"'The text underlines that the French soccer striker is a good player. It is relevant to **sport**': 'In the previous text, the **Scores** concept is mentioned and directly related to **sport**.\n**Answer:**"
+        preprompt_example_1 = f"'The article says that OECD countries became richer in the 20th century. This falls under the category of world'**, the **economic trends** has an impact on **world** prediction.\n**Answer:**"
+        preprompt_example_2 = f"'The abstract underlines that the French soccer striker is a good player. It is relevant to sport'**, the **jargon specific to the sport** has an impact on **sport** prediction.\n**Answer:**"
 
         
         concept_impacts={}
@@ -450,15 +450,15 @@ def annotate_self_exp_concept_agnews(df, retriever_model,
             #for all texts to answer
             for i in range(len(self_explanations)):
                 if df[c].iloc[i]==0:
-                    concept_impact = "**NO**"
+                    concept_impact = "**no**"
                 else:
                     #preprocessing
                     messages = [
                     {"role": "user", "content": preprompt + preprompt_example_1},
-                    {"role": "assistant" ,"content": f"""***YES***"""},
+                    {"role": "assistant" ,"content": f"""***yes***"""},
                     {"role": "user", "content": preprompt + preprompt_example_2},
-                    {"role": "assistant" ,"content": f"""**NO**"""},
-                    {"role": "user", "content": preprompt + "'"+ self_explanations.iloc[i] + "'. In the previous text, the **" + c + "** concept is mentioned and directly related to **" + answers.iloc[i] +"**.\n**Answer:**"},
+                    {"role": "assistant" ,"content": f"""**yes**"""},
+                    {"role": "user", "content": preprompt + "'"+ self_explanations.iloc[i] + "'**, the **" + c + "** has an impact on **" + answers.iloc[i] +"** prediction.\n**Answer:**"},
                     ]
 
                     encoded_input = retriever_tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True, enable_thinking=False, return_tensors="pt")
