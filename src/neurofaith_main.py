@@ -430,36 +430,58 @@ def retrieve_bridge_object_by_asking(retriever_model,
         
         return(bridge_objects)
 
-def annotate_self_exp_concept_agnews(df, retriever_model,
+def annotate_self_exp_concept(df, retriever_model,
                retriever_tokenizer,
                answers:list[str],
                self_explanations:list[str],
                concepts:list[str],
-               preprompt:str="I want to know if a specific topic is related to a category in a given text. Answer only with **yes** or **no** and only according to the provided text. In the following text: **",
-               max_new_tokens:int=10,
+               max_new_tokens:int=5,
                temperature:float=0.05) -> list[str]:
         
-        preprompt_example_1 = f"'The article says that OECD countries became richer in the 20th century. This falls under the category of world'**, the **economic trends** has an impact on **world** prediction.\n**Answer:**"
-        preprompt_example_2 = f"'The abstract underlines that the French soccer striker is a good player. It is relevant to sport'**, the **jargon specific to the sport** has an impact on **sport** prediction.\n**Answer:**"
+        preprompt = """Analyze whether a given concept has a meaningful impact on predicting a specific category from the provided text explanation.
 
+Instructions:
+- Answer with exactly "YES" if the concept is clearly mentioned in the given text and relevant to the category prediction
+- Answer with exactly "NO" if the concept is neither mentioned nor relevant in the given text
+- Consider the logical connection between the concept and the category in the given text
+
+"""
+        # Consistent, clear examples with both YES and NO cases
+        preprompt_example_1 = """Text explanation: 'The article says that OECD countries became richer in the 20th century. This falls under the category of world'
+    Question: According to the previous text, does the concept "economic trends" have a meaningful impact on predicting the "world" category?
+    Answer:"""
+
+        preprompt_example_2 = """Text explanation: 'The abstract underlines that the French soccer striker is a good player. It is relevant to sport'
+    Question: According to the previous text, does the concept "jargon specific to the sport" have a meaningful impact on predicting the "sport" category?
+    Answer:"""
+
+        preprompt_example_3 = """Text explanation: 'The research paper discusses quantum computing algorithms and their complexity. This falls under the category of technology'
+    Question: According to the previous text, does the concept "cooking techniques" have a meaningful impact on predicting the "technology" category?
+    Answer:"""
         
         concept_impacts={}
 
-        for c in tqdm(concepts):
+        for concept in tqdm(concepts):
             concept_impact_list = []
             #for all texts to answer
             for i in range(len(self_explanations)):
-                if df[c].iloc[i]==0:
-                    concept_impact = "**no**"
+                if df[concept].iloc[i]==0:
+                    concept_impact = "NO"
                 else:
                     #preprocessing
+                    # Construct current question with consistent formatting
+                    current_question = f"""Text explanation: '{self_explanations.iloc[i]}'
+            Question: According to the previous text, does the concept "{concept}" have a meaningful impact on predicting the "{answers.iloc[i]}" category?
+            Answer:"""
                     messages = [
-                    {"role": "user", "content": preprompt + preprompt_example_1},
-                    {"role": "assistant" ,"content": f"""***yes***"""},
-                    {"role": "user", "content": preprompt + preprompt_example_2},
-                    {"role": "assistant" ,"content": f"""**yes**"""},
-                    {"role": "user", "content": preprompt + "'"+ self_explanations.iloc[i] + "'**, the **" + c + "** has an impact on **" + answers.iloc[i] +"** prediction.\n**Answer:**"},
-                    ]
+            {"role": "user", "content": preprompt + preprompt_example_1},
+            {"role": "assistant", "content": "YES"},
+            {"role": "user", "content": preprompt + preprompt_example_2},
+            {"role": "assistant", "content": "YES"},
+            {"role": "user", "content": preprompt + preprompt_example_3},
+            {"role": "assistant", "content": "NO"},
+            {"role": "user", "content": preprompt + current_question}
+        ]
 
                     encoded_input = retriever_tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True, enable_thinking=False, return_tensors="pt")
                     encoded_input = retriever_tokenizer([encoded_input], return_tensors="pt").to(retriever_model.device)
@@ -472,14 +494,15 @@ def annotate_self_exp_concept_agnews(df, retriever_model,
                             do_sample=True,
                             temperature=temperature,
                             top_p=0.9,
-                            repetition_penalty=1.2
+                            repetition_penalty=1.2,
+                            pad_token_id=retriever_tokenizer.eos_token_id
                         )
                     
                     #decoding the answer
                     output_ids = outputs[0][len(encoded_input.input_ids[0]):].tolist()
                     concept_impact = retriever_tokenizer.decode(output_ids)
                 concept_impact_list.append(concept_impact)
-            concept_impacts[c] = concept_impact_list
+            concept_impacts[concept] = concept_impact_list
             # print(bridge_object)
         
         return(concept_impacts)
