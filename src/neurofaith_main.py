@@ -507,3 +507,80 @@ Instructions:
         
         return(concept_impacts)
 
+def annotate_self_exp_concept_medical(df, retriever_model,
+               retriever_tokenizer,
+               answers:list[str],
+               self_explanations:list[str],
+               concepts:list[str],
+               max_new_tokens:int=5,
+               temperature:float=0.05) -> list[str]:
+        
+        preprompt = """Analyze whether a given concept has a meaningful impact on predicting a specific disease from a provided explanation from a medical abstract.
+
+Instructions:
+- Answer with exactly "YES" if the concept is clearly mentioned in the given text and relevant to the disease category prediction
+- Answer with exactly "NO" if the concept is neither mentioned nor relevant in the given text
+- Consider the logical connection between the concept and the category in the given text
+
+"""
+        # Consistent, clear examples with both YES and NO cases
+        preprompt_example_1 = """Text explanation: 'The abstract focuses on **chemotherapy** and **drug** related to a cancer. This falls under the disease category of neoplasms'
+    Question: According to the previous text, does the medical concept "chemotherapy" have a meaningful impact on predicting the "neoplasms" disease?
+    Answer:"""
+
+        preprompt_example_2 = """Text explanation: 'The abstract focuses on "chronic hepatitis B" and the digestive system. It is relevant to digestive system diseases'
+    Question: According to the previous text, does the medical concept "chronic hepatitis B" have a meaningful impact on predicting the "digestive system diseases" disease?
+    Answer:"""
+
+        preprompt_example_3 = """Text explanation: 'The abstract talks about a rare genetic disorder affecting skin development. This falls under the disease category of neoplasms'
+    Question: According to the previous text, does the medical concept "neoplasms" have a meaningful impact on predicting the "neoplasms" disease?
+    Answer:"""
+        
+        concept_impacts={}
+
+        for concept in tqdm(concepts):
+            concept_impact_list = []
+            #for all texts to answer
+            for i in range(len(self_explanations)):
+                if df[concept].iloc[i]==0:
+                    concept_impact = "NO"
+                else:
+                    #preprocessing
+                    # Construct current question with consistent formatting
+                    current_question = f"""Text explanation: '{self_explanations.iloc[i]}'
+            Question: According to the previous text, does the medical concept "{concept}" have a meaningful impact on predicting the "{answers.iloc[i]}" disease?
+            Answer:"""
+                    messages = [
+            {"role": "user", "content": preprompt + preprompt_example_1},
+            {"role": "assistant", "content": "YES"},
+            {"role": "user", "content": preprompt + preprompt_example_2},
+            {"role": "assistant", "content": "YES"},
+            {"role": "user", "content": preprompt + preprompt_example_3},
+            {"role": "assistant", "content": "NO"},
+            {"role": "user", "content": preprompt + current_question}
+        ]
+
+                    encoded_input = retriever_tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True, enable_thinking=False, return_tensors="pt")
+                    encoded_input = retriever_tokenizer([encoded_input], return_tensors="pt").to(retriever_model.device)
+
+                    #answering
+                    with torch.no_grad():
+                        outputs = retriever_model.generate(
+                            **encoded_input,
+                            max_new_tokens=max_new_tokens,
+                            do_sample=True,
+                            temperature=temperature,
+                            top_p=0.9,
+                            repetition_penalty=1.2,
+                            pad_token_id=retriever_tokenizer.eos_token_id
+                        )
+                    
+                    #decoding the answer
+                    output_ids = outputs[0][len(encoded_input.input_ids[0]):].tolist()
+                    concept_impact = retriever_tokenizer.decode(output_ids)
+                concept_impact_list.append(concept_impact)
+            concept_impacts[concept] = concept_impact_list
+            # print(bridge_object)
+        
+        return(concept_impacts)
+
