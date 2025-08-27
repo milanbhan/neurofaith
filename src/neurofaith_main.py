@@ -584,3 +584,80 @@ Instructions:
         
         return(concept_impacts)
 
+def annotate_self_exp_concept_ledgar(df, retriever_model,
+               retriever_tokenizer,
+               answers:list[str],
+               self_explanations:list[str],
+               concepts:list[str],
+               max_new_tokens:int=5,
+               temperature:float=0.05) -> list[str]:
+        
+        preprompt = """Analyze whether a given concept has a meaningful impact on predicting a contractual obligation category from a provided legal text explanation.
+
+Instructions:
+- Answer with exactly "YES" if the concept is clearly mentioned in the given text and relevant to the contractual obligation category prediction
+- Answer with exactly "NO" if the concept is neither mentioned nor relevant in the given text
+- Consider the logical connection between the concept and the category in the given text
+
+"""
+        # Consistent, clear examples with both YES and NO cases
+        preprompt_example_1 = """Text explanation: 'This clause defines what happens to your stock options if your employment ends *before* they are fully vested.  It's part of the core **terms** of your employment agreement that outlines how these shares work.'
+    Question: According to the previous text, does the legal  concept "Minimum commitment periods" have a meaningful impact on predicting the "terms" category?
+    Answer:"""
+
+        preprompt_example_2 = """Text explanation: 'This clause defines what happens to your stock options if your employment ends *before* they are fully vested.  It's part of the core **terms** of your employment agreement that outlines how these shares work.'
+    Question: According to the previous text, does the legal  concept "Effect of termination" have a meaningful impact on predicting the "terms" category?
+    Answer:"""
+
+        preprompt_example_3 = """Text explanation: 'The clause specifically talks about how changes can be made to the agreement:\n\n* **"terminated, amended, modified or supplemented"** - These are all words that mean changing the original terms of the contract. \n\n\nSince it focuses on how the contract itself can be altered, the relevant category is **(A) Amendments**'
+    Question: According to the previous text, does the legal  concept "Amendment procedures" have a meaningful impact on predicting the "amendments" category?
+    Answer:"""
+        
+        concept_impacts={}
+
+        for concept in tqdm(concepts):
+            concept_impact_list = []
+            #for all texts to answer
+            for i in range(len(self_explanations)):
+                if df[concept].iloc[i]==0:
+                    concept_impact = "NO"
+                else:
+                    #preprocessing
+                    # Construct current question with consistent formatting
+                    current_question = f"""Text explanation: '{self_explanations.iloc[i]}'
+            Question: According to the previous text, does the legal  concept "{concept}" have a meaningful impact on predicting the "{answers.iloc[i]}" category?
+            Answer:"""
+                    messages = [
+            {"role": "user", "content": preprompt + preprompt_example_1},
+            {"role": "assistant", "content": "NO"},
+            {"role": "user", "content": preprompt + preprompt_example_2},
+            {"role": "assistant", "content": "YES"},
+            {"role": "user", "content": preprompt + preprompt_example_3},
+            {"role": "assistant", "content": "YES"},
+            {"role": "user", "content": preprompt + current_question}
+        ]
+
+                    encoded_input = retriever_tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True, enable_thinking=False, return_tensors="pt")
+                    encoded_input = retriever_tokenizer([encoded_input], return_tensors="pt").to(retriever_model.device)
+
+                    #answering
+                    with torch.no_grad():
+                        outputs = retriever_model.generate(
+                            **encoded_input,
+                            max_new_tokens=max_new_tokens,
+                            do_sample=True,
+                            temperature=temperature,
+                            top_p=0.9,
+                            repetition_penalty=1.2,
+                            pad_token_id=retriever_tokenizer.eos_token_id
+                        )
+                    
+                    #decoding the answer
+                    output_ids = outputs[0][len(encoded_input.input_ids[0]):].tolist()
+                    concept_impact = retriever_tokenizer.decode(output_ids)
+                concept_impact_list.append(concept_impact)
+            concept_impacts[concept] = concept_impact_list
+            # print(bridge_object)
+        
+        return(concept_impacts)
+
