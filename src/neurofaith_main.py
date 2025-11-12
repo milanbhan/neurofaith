@@ -5,7 +5,7 @@ from fuzzywuzzy import fuzz
 import torch.optim as optim
 import torch.nn.functional as F
 import pandas as pd
-from interpret.selfie import GemmaSelfIE
+from interpret.selfie import GemmaSelfIE, QwenSelfIE
 from collections import defaultdict
 
 
@@ -35,6 +35,13 @@ class neurofaith:
             self.end_of_turn = "</s>"
             self.stop_token = "</s>"
             self.correct_cst = 1
+            self.embedding_layer = model.model.embed_tokens
+        elif "Qwen" in tokenizer.name_or_path:
+            self.user_token = "<|im_start|>user"
+            self.assistant_token = "<|im_start|>assistant"
+            self.end_of_turn = "<|im_end|>"
+            self.stop_token = "<|endoftext|>"
+            self.correct_cst = 2
             self.embedding_layer = model.model.embed_tokens
         else:
             raise Exception("Sorry, this tokenizer is not handled so far")
@@ -187,7 +194,13 @@ class neurofaith:
                         token_index = -2):
         
         results_interpret = []
-        selfie_interpret = GemmaSelfIE(model, self.tokenizer, 
+        if "gemma" in self.tokenizer.name_or_path:
+            selfie_interpret = GemmaSelfIE(model, self.tokenizer, 
+                                       interpretation_prompt=interpretation_prompt, 
+                                       num_placeholders=num_placeholders, 
+                                       max_new_tokens=max_new_tokens)
+        elif "Qwen" in self.tokenizer.name_or_path:
+            selfie_interpret = QwenSelfIE(model, self.tokenizer, 
                                        interpretation_prompt=interpretation_prompt, 
                                        num_placeholders=num_placeholders, 
                                        max_new_tokens=max_new_tokens)
